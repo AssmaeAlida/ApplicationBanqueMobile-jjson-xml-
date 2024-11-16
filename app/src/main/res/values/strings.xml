@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">WebServiceFront</string>
+    <string-array name="type_compte_array">
+        <item>Courant</item>
+        <item>Epargne</item>
+    </string-array>
+</resources>
