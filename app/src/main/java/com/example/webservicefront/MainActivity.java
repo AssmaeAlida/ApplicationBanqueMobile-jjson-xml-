@@ -1,17 +1,25 @@
 package com.example.webservicefront;
 
-import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.RadioGroup;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.webservicefront.data.api.RetrofitInstance;
+import com.example.webservicefront.data.api.CompteApi;
+import com.example.webservicefront.data.api.Config;
 import com.example.webservicefront.data.models.Compte;
 import com.example.webservicefront.ui.adapters.CompteAdapter;
 
@@ -21,18 +29,10 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends Activity {
-
+public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private CompteAdapter adapter;
-    private Button addButton;
-
-    private static final int ADD_COMPTE_REQUEST_CODE = 1;
-    private static final int EDIT_COMPTE_REQUEST_CODE = 2; // Ajouté pour l'édition
-
-    private List<Compte> comptes;
-    private RadioGroup formatRadioGroup;
-
+    private String selectedFormat = "application/json"; // le format par défaut hiya json
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,131 +42,150 @@ public class MainActivity extends Activity {
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Initialisation du bouton Ajouter un compte
-        addButton = findViewById(R.id.addButton);
-        addButton.setOnClickListener(v -> {
-            // Ouvrir une nouvelle activité pour ajouter un compte
-            Intent intent = new Intent(MainActivity.this, AddCompteActivity.class);
-            startActivityForResult(intent, ADD_COMPTE_REQUEST_CODE);
-        });
-
-        // Appel Retrofit pour récupérer la liste des comptes
-        RetrofitInstance.getApi().getComptes().enqueue(new Callback<List<Compte>>() {
+        Spinner formatSpinner = findViewById(R.id.formatSpinner);
+        formatSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onResponse(Call<List<Compte>> call, Response<List<Compte>> response) {
-                if (response.isSuccessful()) {
-                    List<Compte> comptes = response.body();
-                    // Initialiser l'adapter avec la liste des comptes
-                    adapter = new CompteAdapter(comptes, new CompteAdapter.OnCompteClickListener() {
-                        @Override
-                        public void onEditClick(Compte compte) {
-                            // Lancer l'activité d'édition
-                            Intent intent = new Intent(MainActivity.this, EditCompteActivity.class);
-                            intent.putExtra("compte", compte); // Passer le compte à l'activité d'édition
-                            startActivityForResult(intent, 1); // Demander un retour (si besoin de récupérer les données modifiées)
-                        }
-
-                        @Override
-                        public void onDeleteClick(Compte compte) {
-                            // Logique pour supprimer un compte
-                            deleteCompte(compte);
-                        }
-                    });
-                    recyclerView.setAdapter(adapter);
-                } else {
-                    Log.e("MainActivity", "Error: " + response.code());
-                }
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedFormat = parent.getItemAtPosition(position).toString().equals("JSON")
+                        ? "application/json" : "application/xml";
+                fetchComptes();
             }
 
-        @Override
-            public void onFailure(Call<List<Compte>> call, Throwable t) {
-                Log.e("MainActivity", "Error: " + t.getMessage());
-                Toast.makeText(MainActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                fetchComptes();
             }
         });
+
+        Button addCompteButton = findViewById(R.id.addCompteButton);
+        addCompteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAddCompteDialog();
+            }
+        });
+        fetchComptes();
     }
-
-
-    // Méthode pour supprimer un compte
-    private void deleteCompte(Compte compte) {
-        RetrofitInstance.getApi().deleteCompte(compte.getId()).enqueue(new Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(MainActivity.this, "Compte supprimé", Toast.LENGTH_SHORT).show();
-                    // Recharger la liste des comptes après la suppression
-                    reloadComptes();
-                } else {
-                    Toast.makeText(MainActivity.this, "Erreur lors de la suppression", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "Erreur: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-
-    // Méthode pour recharger les comptes après modification ou suppression
-    private void reloadComptes() {
-        RetrofitInstance.getApi().getComptes().enqueue(new Callback<List<Compte>>() {
-            @Override
-            public void onResponse(Call<List<Compte>> call, Response<List<Compte>> response) {
-                if (response.isSuccessful()) {
-                    List<Compte> comptes = response.body();
-                    if (adapter == null) {
-                        adapter = new CompteAdapter(comptes, new CompteAdapter.OnCompteClickListener() {
-                            @Override
-                            public void onEditClick(Compte compte) {
-                                Intent intent = new Intent(MainActivity.this, EditCompteActivity.class);
-                                intent.putExtra("compte", compte);
-                                startActivityForResult(intent, EDIT_COMPTE_REQUEST_CODE);
-                            }
-
-                            @Override
-                            public void onDeleteClick(Compte compte) {
-                                deleteCompte(compte);
-                            }
-                        });
-                        recyclerView.setAdapter(adapter);
-                    } else {
-                        adapter.updateComptes(comptes); // Mettre à jour l'adaptateur
-                    }
-                } else {
-                    Log.e("MainActivity", "Erreur lors du rechargement des comptes : " + response.code());
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<Compte>> call, Throwable t) {
-                Log.e("MainActivity", "Erreur lors du rechargement des comptes : " + t.getMessage());
-            }
-        });
-    }
-
-
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == ADD_COMPTE_REQUEST_CODE && resultCode == RESULT_OK) {
-            reloadComptes(); // Recharge la liste des comptes après l'ajout
-        } else if (requestCode == EDIT_COMPTE_REQUEST_CODE && resultCode == RESULT_OK) {
-            reloadComptes(); // Recharge la liste des comptes après la modification
+        if (resultCode == RESULT_OK) {
+            fetchComptes(); // Refresh data after modification
         }
     }
 
 
+    private void fetchComptes() {
+        CompteApi api = Config.getClient(selectedFormat).create(CompteApi.class);
+        Call<List<Compte>> call = api.getComptes();
 
+        call.enqueue(new Callback<List<Compte>>() {
+            @Override
+            public void onResponse(Call<List<Compte>> call, Response<List<Compte>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    adapter = new CompteAdapter(MainActivity.this, response.body());
+                    recyclerView.setAdapter(adapter);
+                } else {
+                    Toast.makeText(MainActivity.this, "Erreur de récupération", Toast.LENGTH_SHORT).show();
+                }
+            }
 
+            @Override
+            public void onFailure(Call<List<Compte>> call, Throwable t) {
+                Toast.makeText(MainActivity.this, t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
+    private void addCompte(Compte compte) {
+        CompteApi api = Config.getClient(selectedFormat).create(CompteApi.class);
+        Call<Compte> call = api.addCompte(compte);
 
+        call.enqueue(new Callback<Compte>() {
+            @Override
+            public void onResponse(Call<Compte> call, Response<Compte> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(MainActivity.this, "Compte ajouté", Toast.LENGTH_SHORT).show();
+                    fetchComptes();
+                } else {
+                    Toast.makeText(MainActivity.this, "Erreur d'ajout", Toast.LENGTH_SHORT).show();
+                }
+            }
 
+            @Override
+            public void onFailure(Call<Compte> call, Throwable t) {
+                Toast.makeText(MainActivity.this, t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
+    private void showAddCompteDialog() {
 
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle("Ajouter un Compte");
+
+        // Create a LinearLayout for the form
+        LinearLayout layout = new LinearLayout(MainActivity.this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        // Create EditTexts for each field (id, solde)
+        final EditText idEditText = new EditText(MainActivity.this);
+        idEditText.setHint("ID");
+        final EditText soldeEditText = new EditText(MainActivity.this);
+        soldeEditText.setHint("Solde");
+
+        // Create a Spinner for the type field
+        final Spinner typeSpinner = new Spinner(MainActivity.this);
+        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_spinner_item, new String[]{"EPARGNE", "COURANT"});
+        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        typeSpinner.setAdapter(typeAdapter);
+
+        // Add the EditTexts and Spinner to the layout
+        layout.addView(idEditText);
+        layout.addView(soldeEditText);
+        layout.addView(typeSpinner);
+
+        // Set the layout to the dialog
+        builder.setView(layout);
+
+        // Set the "Add" button
+        builder.setPositiveButton("Ajouter", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // Get the user input
+                String idStr = idEditText.getText().toString();
+                String soldeStr = soldeEditText.getText().toString();
+                String type = typeSpinner.getSelectedItem().toString(); // Get the selected type
+
+                // Validate the input
+                if (idStr.isEmpty() || soldeStr.isEmpty() || type.isEmpty()) {
+                    Toast.makeText(MainActivity.this, "Veuillez remplir tous les champs", Toast.LENGTH_SHORT).show();
+                } else {
+                    // Convert input to appropriate types
+                    Long id = Long.parseLong(idStr);
+                    double solde = Double.parseDouble(soldeStr);
+
+                    // Create a new Compte object
+                    Compte newCompte = new Compte(id, solde, type);
+
+                    // Call the method to add the compte
+                    addCompte(newCompte);
+                }
+            }
+        });
+
+        // Set the "Cancel" button
+        builder.setNegativeButton("Annuler", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        // Show the dialog
+        builder.show();
+    }
 
 
 }

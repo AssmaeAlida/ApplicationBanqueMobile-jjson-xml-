@@ -5,7 +5,7 @@ import org.simpleframework.xml.Root;
 import java.io.Serializable;
 import java.util.Date;
 
-@Root(name = "compte")  // Indique que cette classe représente un élément XML appelé "compte"
+@Root(name = "compte", strict = false)  // Indique que cette classe représente un élément XML appelé "compte"
 public class Compte implements Serializable {
 
     @Element(name = "id")
@@ -17,8 +17,13 @@ public class Compte implements Serializable {
     @Element(name = "dateCreation")
     private Date dateCreation;
 
-    @Element(name = "type")
-    private TypeCompte type;
+    private String type;
+
+    public Compte(Long id, double solde, String type) {
+        this.id = id;
+        this.solde = solde;
+        this.type = type;
+    }
 
     // Getters et setters
     public Long getId() {
@@ -45,11 +50,11 @@ public class Compte implements Serializable {
         this.dateCreation = dateCreation;
     }
 
-    public TypeCompte getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(TypeCompte type) {
+    public void setType(String type) {
         this.type = type;
     }
 

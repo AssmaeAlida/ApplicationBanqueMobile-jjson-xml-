@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="#3D3E3E">
 
-    <!-- Titre de la page -->
     <TextView
         android:id="@+id/titleTextView"
         android:layout_width="match_parent"
@@ -16,61 +16,74 @@
         android:textStyle="bold"
         android:gravity="center"
         android:padding="16dp"
-        android:background="#E0E0E0" />
+        android:background="#E0E0E0"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Bouton Ajouter un nouveau compte -->
-    <Button
-        android:id="@+id/addButton"
+    <!-- Card for Spinner -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/searchCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Ajouter un Nouveau Compte"
+        android:layout_margin="16dp"
+        android:background="#3D3E3E"
         android:textColor="#FFFFFF"
-        android:background="@android:color/holo_blue_light"
-        android:layout_marginTop="16dp" />
 
-    <!-- RecyclerView pour afficher les comptes -->
+        app:layout_constraintTop_toBottomOf="@id/titleTextView">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#3D3E3E"
+            android:gravity="center_vertical"
+            android:textColor="#FFFFFF"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="16dp"
+                android:background="#3D3E3E"
+                android:textColor="#FFFFFF"
+                android:contentDescription="Search Icon" />
+
+            <Spinner
+                android:id="@+id/formatSpinner"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="56dp"
+                android:textSize="18sp"
+                android:textColor="#FFFFFF"
+                android:background="@null"
+                android:entries="@array/type_compte_array"
+                android:paddingHorizontal="10dp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/addCompteButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        android:backgroundTint="#FFEB3B"
+        android:text="Ajouter un nouveau Compte"
+        android:textColor="@color/black"
+        app:iconTint="@color/black"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="8dp" />
+        android:clipToPadding="false"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="90dp"
+        app:layout_constraintBottom_toTopOf="@id/addCompteButton"
+        app:layout_constraintTop_toBottomOf="@id/searchCard"
+        app:layout_constraintVertical_bias="1.0" />
 
-    <!-- Choix du format des données -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginTop="8dp">
-
-        <TextView
-            android:id="@+id/formatLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Format des données :"
-            android:layout_marginEnd="8dp" />
-
-        <RadioGroup
-            android:id="@+id/formatRadioGroup"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <RadioButton
-                android:id="@+id/jsonRadioButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="JSON"
-                android:checked="true" />
-
-            <RadioButton
-                android:id="@+id/xmlRadioButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="XML"
-                android:layout_marginStart="16dp" />
-        </RadioGroup>
-    </LinearLayout>
-
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

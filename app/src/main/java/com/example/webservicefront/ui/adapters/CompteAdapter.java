@@ -1,88 +1,107 @@
 package com.example.webservicefront.ui.adapters;
 
+import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.webservicefront.EditCompteActivity;
 import com.example.webservicefront.R;
+import com.example.webservicefront.data.api.CompteApi;
+import com.example.webservicefront.data.api.Config;
 import com.example.webservicefront.data.models.Compte;
 
 import java.util.List;
 
-public class CompteAdapter extends RecyclerView.Adapter<CompteAdapter.CompteViewHolder> {
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
+public class CompteAdapter extends RecyclerView.Adapter<CompteAdapter.ViewHolder> {
+    private Context context;
     private List<Compte> comptes;
-    private final OnCompteClickListener listener;
 
-    public CompteAdapter(List<Compte> comptes, OnCompteClickListener listener) {
+    public CompteAdapter(Context context, List<Compte> comptes) {
+        this.context = context;
         this.comptes = comptes;
-        this.listener = listener;
+    }
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(context).inflate(R.layout.compte_item, parent, false);
+        return new ViewHolder(view);
     }
 
     @Override
-    public CompteViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_compte, parent, false);
-        return new CompteViewHolder(view);
-    }
-
-    @Override
-    public void onBindViewHolder(CompteViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Compte compte = comptes.get(position);
-        holder.soldeTextView.setText("Solde: " + compte.getSolde());
-        holder.typeTextView.setText("Type: " + compte.getType());
 
-        holder.editIcon.setOnClickListener(v -> listener.onEditClick(compte));
-        holder.deleteIcon.setOnClickListener(v -> listener.onDeleteClick(compte));
+        holder.solde.setText("Solde: " + compte.getSolde());
+        holder.type.setText("Type: " + compte.getType());
+
+        // Edit button
+        holder.editIcon.setOnClickListener(v -> {
+            Intent intent = new Intent(context, EditCompteActivity.class);
+            intent.putExtra("compte_id", compte.getId());
+            context.startActivity(intent);
+        });
+
+        // Delete button
+        holder.deleteIcon.setOnClickListener(v -> deleteCompte(compte.getId(), position));
     }
+
+    private void deleteCompte(Long id, int position) {
+        String format = "application/json";
+
+        CompteApi api = Config.getClient(format).create(CompteApi.class);
+        Call<Void> call = api.deleteCompte(id);
+
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    // Supprimer l'élément de la liste si l'API retourne un succès
+                    comptes.remove(position);
+                    notifyItemRemoved(position);
+                    Toast.makeText(context, "Compte supprimé avec succès", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, "Erreur lors de la suppression", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                Toast.makeText(context, "Échec de la requête : " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+
 
     @Override
     public int getItemCount() {
         return comptes.size();
     }
 
-
-    public void updateComptes(List<Compte> newComptes) {
-        this.comptes.clear();
-        this.comptes.addAll(newComptes);
-        notifyDataSetChanged();
-    }
-
-    public class CompteViewHolder extends RecyclerView.ViewHolder {
-        TextView soldeTextView, typeTextView;
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView solde, type;
         ImageView editIcon, deleteIcon;
 
-        public CompteViewHolder(View itemView) {
+        public ViewHolder(View itemView) {
             super(itemView);
-            soldeTextView = itemView.findViewById(R.id.soldeTextView);
-            typeTextView = itemView.findViewById(R.id.typeTextView);
+            solde = itemView.findViewById(R.id.solde);
+            type = itemView.findViewById(R.id.type);
             editIcon = itemView.findViewById(R.id.editIcon);
             deleteIcon = itemView.findViewById(R.id.deleteIcon);
         }
     }
-
-    public interface OnCompteClickListener {
-        void onEditClick(Compte compte);
-        void onDeleteClick(Compte compte);
-
-    }
-    public void updateCompte(Compte updatedCompte) {
-        // Trouver l'index du compte à mettre à jour
-        for (int i = 0; i < comptes.size(); i++) {
-            if (comptes.get(i).getId() == updatedCompte.getId()) {
-                // Remplacer l'ancien compte par le compte mis à jour
-                comptes.set(i, updatedCompte);
-                notifyItemChanged(i); // Notifier que l'élément a été modifié
-                break;
-            }
-        }
-    }
-
-
-
-
-
 }
